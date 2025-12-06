@@ -8,13 +8,13 @@ Displays active fire detections from NASA satellites on an interactive map. Fire
 
 ## Setup
 
-1. Open `wildfire-tracker.html` in a browser
+1. Open `index.html` in a browser
 2. The app loads with demo data by default
 
 To use live satellite data:
 
 1. Get a free API key from [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/api/map_key)
-2. Open `wildfire-tracker.html` in a text editor
+2. Open `index.html` in a text editor
 3. Find `const MAP_KEY = 'YOUR_MAP_KEY_HERE'` near the bottom
 4. Replace `YOUR_MAP_KEY_HERE` with your key
 5. Save and refresh
