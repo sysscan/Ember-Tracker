@@ -574,7 +574,7 @@
                 </div>
             </div>
 
-            <div class="api-notice">
+            <div class="api-notice" id="apiNotice">
                 <strong>NASA FIRMS API</strong><br>
                 This app uses demo data. For live data, get a free API key from 
                 <a href="https://firms.modaps.eosdis.nasa.gov/api/map_key" target="_blank">NASA FIRMS</a> 
@@ -604,6 +604,10 @@
             }
 
             const MAP_KEY = '30e00d7b5b49c66694485933da617a34';
+            
+            if (MAP_KEY !== 'YOUR_MAP_KEY_HERE') {
+                document.getElementById('apiNotice').style.display = 'none';
+            }
             
             const map = L.map('map', {
             center: [39.8, -98.5],
@@ -848,6 +852,8 @@
                 
                 const data = parseCSV(csv);
                 console.log('Fires loaded:', data.length);
+                
+                data.sort((a, b) => (parseFloat(b.frp) || 0) - (parseFloat(a.frp) || 0));
                 
                 renderFireMarkers(data);
             } catch (error) {
