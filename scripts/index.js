@@ -5,7 +5,11 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  const MAP_KEY = "YOUR_MAP_KEY_HERE";
+  const MAP_KEY = "b1e3672d4f5948aac30aab174780c551";
+
+  if (MAP_KEY !== "b1e3672d4f5948aac30aab174780c551") {
+    document.getElementById("apiNotice").style.display = "none";
+  }
 
   const map = L.map("map", {
     center: [39.8, -98.5],
@@ -239,12 +243,24 @@ document.addEventListener("DOMContentLoaded", function () {
   async function fetchFireData() {
     const sensor = document.getElementById("sensorSelect").value;
     const days = document.getElementById("dayRange").value;
-    const w = document.getElementById("bboxW").value;
-    const s = document.getElementById("bboxS").value;
-    const e = document.getElementById("bboxE").value;
-    const n = document.getElementById("bboxN").value;
 
-    const bbox = `${w},${s},${e},${n}`;
+    let w = parseFloat(document.getElementById("bboxW").value) || -125;
+    let s = parseFloat(document.getElementById("bboxS").value) || 25;
+    let e = parseFloat(document.getElementById("bboxE").value) || -65;
+    let n = parseFloat(document.getElementById("bboxN").value) || 50;
+
+    w = Math.max(-180, Math.min(180, w));
+    e = Math.max(-180, Math.min(180, e));
+    s = Math.max(-90, Math.min(90, s));
+    n = Math.max(-90, Math.min(90, n));
+
+    document.getElementById("bboxW").value = w.toFixed(2);
+    document.getElementById("bboxS").value = s.toFixed(2);
+    document.getElementById("bboxE").value = e.toFixed(2);
+    document.getElementById("bboxN").value = n.toFixed(2);
+
+    const isWorld = w === -180 && s === -90 && e === 180 && n === 90;
+    const bbox = isWorld ? "world" : `${w},${s},${e},${n}`;
 
     showLoading(true);
 
@@ -253,29 +269,42 @@ document.addEventListener("DOMContentLoaded", function () {
         const demoData = generateDemoData(150, [w, s, e, n]);
         renderFireMarkers(demoData);
         showLoading(false);
-      }, 1500);
+      }, 1000);
       return;
     }
 
     try {
       const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${MAP_KEY}/${sensor}/${bbox}/${days}`;
+
       const response = await fetch(url);
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const csv = await response.text();
+
+      if (csv.includes("Invalid")) {
+        console.warn("API error:", csv);
+        throw new Error(csv);
+      }
+
       const data = parseCSV(csv);
+      console.log("Fires loaded:", data.length);
+
+      data.sort((a, b) => (parseFloat(b.frp) || 0) - (parseFloat(a.frp) || 0));
+
       renderFireMarkers(data);
     } catch (error) {
       console.error("Fetch error:", error);
-      alert("Failed to fetch fire data. Check your API key and try again.");
+      const demoData = generateDemoData(150, [w, s, e, n]);
+      renderFireMarkers(demoData);
+      alert("API request failed. Showing demo data. Error: " + error.message);
     } finally {
       showLoading(false);
     }
   }
 
   function generateDemoData(count, bounds) {
-    const [w, s, e, n] = bounds.map(Number);
+    const [w, s, e, n] = bounds;
     const data = [];
     const confidences = ["h", "n", "l"];
     const satellites = ["N", "N20", "N21"];
@@ -307,6 +336,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("fetchBtn").addEventListener("click", fetchFireData);
 
+  const regionPresets = {
+    world: { w: -180, s: -90, e: 180, n: 90, center: [20, 0], zoom: 2 },
+    usa: { w: -125, s: 25, e: -65, n: 50, center: [39, -98], zoom: 4 },
+    california: {
+      w: -125,
+      s: 32,
+      e: -114,
+      n: 42,
+      center: [37, -120],
+      zoom: 6,
+    },
+    australia: {
+      w: 112,
+      s: -44,
+      e: 154,
+      n: -10,
+      center: [-25, 135],
+      zoom: 4,
+    },
+    amazon: { w: -75, s: -20, e: -45, n: 5, center: [-8, -60], zoom: 5 },
+    africa: { w: 10, s: -15, e: 40, n: 15, center: [0, 25], zoom: 4 },
+  };
+
+  document
+    .getElementById("regionPreset")
+    .addEventListener("change", function () {
+      const preset = regionPresets[this.value];
+      if (preset) {
+        document.getElementById("bboxW").value = preset.w;
+        document.getElementById("bboxS").value = preset.s;
+        document.getElementById("bboxE").value = preset.e;
+        document.getElementById("bboxN").value = preset.n;
+        map.setView(preset.center, preset.zoom);
+      }
+    });
+
   map.on("moveend", function () {
     const bounds = map.getBounds();
     document.getElementById("bboxW").value = bounds.getWest().toFixed(2);
@@ -315,5 +380,5 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("bboxN").value = bounds.getNorth().toFixed(2);
   });
 
-  fetchFireData();
+  setTimeout(fetchFireData, 500);
 });
