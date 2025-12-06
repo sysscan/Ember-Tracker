@@ -802,10 +802,21 @@
         async function fetchFireData() {
             const sensor = document.getElementById('sensorSelect').value;
             const days = document.getElementById('dayRange').value;
-            const w = parseFloat(document.getElementById('bboxW').value) || -125;
-            const s = parseFloat(document.getElementById('bboxS').value) || 25;
-            const e = parseFloat(document.getElementById('bboxE').value) || -65;
-            const n = parseFloat(document.getElementById('bboxN').value) || 50;
+            
+            let w = parseFloat(document.getElementById('bboxW').value) || -125;
+            let s = parseFloat(document.getElementById('bboxS').value) || 25;
+            let e = parseFloat(document.getElementById('bboxE').value) || -65;
+            let n = parseFloat(document.getElementById('bboxN').value) || 50;
+
+            w = Math.max(-180, Math.min(180, w));
+            e = Math.max(-180, Math.min(180, e));
+            s = Math.max(-90, Math.min(90, s));
+            n = Math.max(-90, Math.min(90, n));
+
+            document.getElementById('bboxW').value = w.toFixed(2);
+            document.getElementById('bboxS').value = s.toFixed(2);
+            document.getElementById('bboxE').value = e.toFixed(2);
+            document.getElementById('bboxN').value = n.toFixed(2);
 
             const isWorld = (w === -180 && s === -90 && e === 180 && n === 90);
             const bbox = isWorld ? 'world' : `${w},${s},${e},${n}`;
@@ -823,23 +834,20 @@
 
             try {
                 const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${MAP_KEY}/${sensor}/${bbox}/${days}`;
-                console.log('Fetching:', url);
                 
                 const response = await fetch(url);
-                console.log('Response status:', response.status);
                 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const csv = await response.text();
-                console.log('CSV preview:', csv.substring(0, 500));
-                console.log('CSV length:', csv.length);
+                
+                if (csv.includes('Invalid')) {
+                    console.warn('API error:', csv);
+                    throw new Error(csv);
+                }
                 
                 const data = parseCSV(csv);
-                console.log('Parsed fires:', data.length);
-                
-                if (data.length === 0 && csv.length > 0) {
-                    console.log('Full CSV:', csv);
-                }
+                console.log('Fires loaded:', data.length);
                 
                 renderFireMarkers(data);
             } catch (error) {
