@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    const MAP_KEY = 'YOUR_MAP_KEY_HERE';
+    const MAP_KEY = '30e00d7b5b49c66694485933da617a34';
     
     if (MAP_KEY !== 'YOUR_MAP_KEY_HERE') {
         document.getElementById('apiNotice').style.display = 'none';
